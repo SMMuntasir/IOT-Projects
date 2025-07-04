@@ -1,0 +1,106 @@
+// Created by Simple Circuits – Modified for reliability and flexibility by ChatGPT
+
+#include <Wire.h>
+#include <LiquidCrystal_I2C.h>
+#include <Servo.h>
+
+// LCD setup
+LiquidCrystal_I2C lcd(0x27, 16, 2);   // Adjust I2C address if needed
+
+// Servo setup
+Servo myservo;
+
+// IR Sensor Pins
+const int IR1 = 2;  // Entry sensor
+const int IR2 = 3;  // Exit sensor
+
+// Parking Slot Management
+int Slot = 4;       // Total number of parking slots
+int flag1 = 0;
+int flag2 = 0;
+
+// Servo angle variables (you can easily change these!)
+const int gateOpenAngle = 0;     // Gate opens at this angle
+const int gateCloseAngle = 81;  // Gate closes at this angle
+
+void setup() {
+  Serial.begin(9600);
+
+  // Initialize LCD
+  lcd.init();
+  lcd.backlight();
+
+  // IR Sensor Pins
+  pinMode(IR1, INPUT);
+  pinMode(IR2, INPUT);
+
+  // Attach Servo to Pin 4
+  myservo.attach(4);
+  myservo.write(gateCloseAngle);  // Gate initially closed
+
+  // Display welcome message
+  lcd.setCursor(0, 0);
+  lcd.print("     ARDUINO    ");
+  lcd.setCursor(0, 1);
+  lcd.print(" PARKING SYSTEM ");
+  delay(2000);
+  lcd.clear();
+}
+
+void loop() {
+  // Debug Info on Serial Monitor
+  Serial.print("IR1: ");
+  Serial.print(digitalRead(IR1));
+  Serial.print(" | IR2: ");
+  Serial.print(digitalRead(IR2));
+  Serial.print(" | Slot: ");
+  Serial.println(Slot);
+
+  // Entry Logic
+  if (digitalRead(IR1) == LOW && flag1 == 0) {
+    if (Slot > 0) {
+      flag1 = 1;
+      if (flag2 == 0) {
+        myservo.write(gateOpenAngle);  // Open gate
+        Slot = Slot - 1;
+      }
+    } else {
+      lcd.setCursor(0, 0);
+      lcd.print("    SORRY :(    ");
+      lcd.setCursor(0, 1);
+      lcd.print("  Parking Full  ");
+      delay(3000);
+      lcd.clear();
+    }
+  }
+
+  // Exit Logic
+  if (digitalRead(IR2) == LOW && flag2 == 0) {
+    flag2 = 1;
+    if (flag1 == 0) {
+      myservo.write(gateOpenAngle);  // Open gate
+      Slot = Slot + 1;
+    }
+  }
+
+  // After Entry + Exit both triggered
+  if (flag1 == 1 && flag2 == 1) {
+    delay(1000);                      // wait for car to pass
+    myservo.write(gateCloseAngle);    // Close gate
+    flag1 = 0;
+    flag2 = 0;
+  }
+
+  // Update LCD Display
+  lcd.setCursor(0, 0);
+  lcd.print("    WELCOME!    ");
+  lcd.setCursor(0, 1);
+  lcd.print("Slot Left: ");
+  lcd.print(Slot);
+
+  // Prevent slot overflow/underflow
+  if (Slot < 0) Slot = 0;
+  if (Slot > 4) Slot = 4;
+
+  delay(200);  // short delay to avoid bouncing
+}
