@@ -18,7 +18,7 @@ Servo servo;
 
 // Configurable Servo Pins and Angles
 #define SERVO_PIN 13
-const int lidOpenAngle = 150;
+const int lidOpenAngle = 160;
 const int lidCloseAngle = 0;
 
 // Pins for sensors and indicators
